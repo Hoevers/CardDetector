@@ -11,13 +11,29 @@ main(
 {
 	int i;
 
-	if( argc <= 1 )
+	/*if( argc <= 1 )
 	{
 		fprintf(stderr, "Usage: %s <template> <image>\n", argv[0]);
 		exit(-1);
-	}
+	}*/
 
-	IplImage *template_src = cvLoadImage( argv[1], 1 );
+	CvCapture* capture = cvCaptureFromCAM( CV_CAP_ANY );
+	if ( !capture ) {
+		fprintf( stderr, "ERROR: capture is NULL \n" );
+		getchar();
+		return -1;
+	}	
+	
+	
+	  while ( 1 ) {
+
+     IplImage* template_src = cvQueryFrame( capture );
+     if ( !template_src ) {
+       fprintf( stderr, "ERROR: frame is null...\n" );
+       getchar();
+       break;
+     }
+   
 	CvMat *template_enh = cvCreateMat( template_src->height, template_src->width, CV_8UC1 );
 	CvMat *template_edges = cvCreateMat( template_src->height, template_src->width, CV_8UC1 );
 	CvMat *template_out = cvCreateMat( template_src->height, template_src->width, CV_8UC3 );
@@ -29,7 +45,7 @@ main(
 	//cvThreshold( template_enh, template_enh, 200, 255, CV_THRESH_BINARY);
 	cvAdaptiveThreshold( template_enh, template_enh, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 121, 0);
 	IplConvKernel *kernel = cvCreateStructuringElementEx( 3, 3, 0, 0, CV_SHAPE_RECT, NULL );
-	cvErode( template_enh, template_enh, kernel, 1 );
+//	cvErode( template_enh, template_enh, kernel, 1 );
 	cvCanny( template_enh, template_edges, 170, 200 );
 
 	CvMemStorage* storage = cvCreateMemStorage();;
@@ -74,8 +90,18 @@ main(
 
 	cvShowImage( "template_edges", template_edges );
 	cvMoveWindow( "template_edges", template_edges->width*2, 0 );
+	
+	cvReleaseMat( &template_enh );
+	//cvReleaseImageMat( &template_enh );
+	cvReleaseMat( &template_edges );
+	//cvReleaseMatHeader( &template_edges );
+	cvReleaseMat( &template_out );
+	//cvReleaseImageHeader( &template_out );
+	
+	cvClearMemStorage(storage);
+	cvReleaseMemStorage(&storage);
 
-	cvWaitKey( 0 );
-
+	if ( (cvWaitKey(10) & 255) == 27 ) break;
+	}
 	return 0;
 }
