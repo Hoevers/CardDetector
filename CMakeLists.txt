@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 2.8)
 
+if( NOT CMAKE_BUILD_TYPE )
+	set( CMAKE_BUILD_TYPE "DEBUG" ) 
+endif()
+
 #set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}"
 #"/Volumes/Downloads/opencv-2.4.2-release/share/OpenCV")
 #"/Users/jerry/Macports/share/cmake-2.8/Modules")
@@ -12,11 +16,11 @@ pkg_check_modules(OpenCV REQUIRED opencv)
 project( example )
 link_directories( ${OpenCV_LIBRARY_DIRS} )
 
-add_executable( example example.cpp BlobExtract.cpp )
+add_executable( example example.c cards.c )
 target_link_libraries( example ${OpenCV_LDFLAGS} )
 
-add_executable( match match.cpp )
-target_link_libraries( match ${OpenCV_LDFLAGS} )
+#add_executable( match match.cpp )
+#target_link_libraries( match ${OpenCV_LDFLAGS} )
 
 message( STATUS "OpenCV found: ${OpenCV_FOUND}" )
 message( STATUS "OpenCV version: ${OpenCV_VERSION}" )
