@@ -33,14 +33,9 @@ main(
 
 	while ( 1 )
 	{
-
 		IplImage* template_src = cvQueryFrame( capture );
 		if ( !template_src )
-		{
-			fprintf( stderr, "ERROR: frame is null...\n" );
-			getchar();
 			break;
-		}
 
 		CvMat *template_enh = cvCreateMat( template_src->height, template_src->width, CV_8UC1 );
 		CvMat *template_edges = cvCreateMat( template_src->height, template_src->width, CV_8UC1 );
@@ -53,8 +48,8 @@ main(
 		cvSmooth( template_enh, template_enh, CV_GAUSSIAN, 3, 0, 0, 0 );
 		cvThreshold( template_enh, template_enh, 200, 255, CV_THRESH_BINARY);
 		//cvAdaptiveThreshold( template_enh, template_enh, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 121, 0);
-		IplConvKernel *kernel = cvCreateStructuringElementEx( 3, 3, 0, 0, CV_SHAPE_RECT, NULL );
-		/* cvErode( template_enh, template_enh, kernel, 1 ); */
+		//IplConvKernel *kernel = cvCreateStructuringElementEx( 3, 3, 0, 0, CV_SHAPE_RECT, NULL );
+		//cvErode( template_enh, template_enh, kernel, 1 );
 		cvCanny( template_enh, template_edges, 170, 200, 3 );
 
 		CvMemStorage* storage = cvCreateMemStorage(0);;
@@ -99,21 +94,20 @@ main(
 				card_roi = cvGetSubRect( template_enh, card_roi, bounding );
 
 				cvCvtColor( card_roi, card_roi_out, CV_GRAY2BGR);
-				
 
-			CvMemStorage* card_storage = cvCreateMemStorage(0);;
-			CvSeq *card_contours = NULL;
+				CvMemStorage* card_storage = cvCreateMemStorage(0);;
+				CvSeq *card_contours = NULL;
 
-			cvCanny( card_roi, card_edges, 170, 200, 3 );
-			int val = cvFindContours(
-		   	     card_edges,
-		   	     card_storage,
-		    	    &card_contours,
-		        sizeof(CvContour),
-		        CV_RETR_EXTERNAL,
-				CV_CHAIN_APPROX_SIMPLE,
-				cvPoint(0, 0)
-		        );
+				cvCanny( card_roi, card_edges, 170, 200, 3 );
+				int val = cvFindContours(
+					card_edges,
+					card_storage,
+					&card_contours,
+					sizeof(CvContour),
+					CV_RETR_EXTERNAL,
+					CV_CHAIN_APPROX_SIMPLE,
+					cvPoint(0, 0)
+				);
 
 		cvDrawContours( 
 			card_roi_out,
@@ -125,9 +119,6 @@ main(
 				/* Show and release */
 				cvShowImage( "card_roi_out", card_roi_out );
 				cvMoveWindow( "card_roi_out", 0, template_src->width/4 );
-
-				//cvShowImage( "card_edges", card_edges );
-				//cvMoveWindow( "card_edges", 100, template_src->width/4 );
 
 				cvReleaseMat( &card_roi );
 				cvReleaseMat( &card_roi_out );
@@ -141,6 +132,8 @@ main(
 			id++;
 		}
 
+// Draw text
+#if 0
 		char buffer[256] = { 0 };
 
 		CvFont font;
@@ -154,29 +147,25 @@ main(
 		cvInitFont(&font, CV_FONT_HERSHEY_COMPLEX_SMALL, 1.0, 0.8, 0.2, 1, 4);
 		snprintf(buffer, sizeof(buffer), "Found %d contours", val );
 		cvPutText(template_out, buffer, cvPoint( 1, 15 ), &font, CV_RGB(255,255,255));
+#endif
 
 		cvResize( template_out, template_out_rescale, CV_INTER_LINEAR );
 		cvShowImage( "template", template_out_rescale );
 		cvMoveWindow( "template", 0, 0 );
 
-		//cvShowImage( "template_enh", template_enh );
-		//cvMoveWindow( "template_enh", 480, 0 );
-
-		//cvShowImage( "template_edges", template_edges );
-		//cvMoveWindow( "template_edges", 480*2, 0 );
-
+		/* Cleanup */
 		cvReleaseMat( &template_enh );
 		cvReleaseMat( &template_edges );
 		cvReleaseMat( &template_out );
 		cvReleaseMat( &template_out_rescale );
 
-
-
 		cvClearMemStorage(storage);
 		cvReleaseMemStorage(&storage);
 
+		/* Wait for escape key to exit */
 		if ( (cvWaitKey(250) & 255) == 27 )
 			break;
 	}
+
 	return 0;
 }

@@ -25,13 +25,8 @@ card_type
 	CARD_TYPE_END
 };
 
-struct
-card_t
-{
-	enum card_type type;
-	CvSeq *contour;
-};
-
-int card_init(const char *directory);
+int  card_init(const char *directory);
+void card_cleanup(void);
+void card_process(CvMat *image, enum card_type current);
 
 #endif /* CARDS_H__ */

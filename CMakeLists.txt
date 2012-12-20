@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 2.8)
 
 if( NOT CMAKE_BUILD_TYPE )
 	set( CMAKE_BUILD_TYPE "DEBUG" ) 
+	set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDEBUG" )
 endif()
+
+set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -std=c99" )
 
 #set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}"
 #"/Volumes/Downloads/opencv-2.4.2-release/share/OpenCV")
