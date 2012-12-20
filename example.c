@@ -73,7 +73,7 @@ main(
 			double area =  cvContourArea( contour, CV_WHOLE_SEQ, 0 );
 			printf("[%u] Area: %f\n", id,  area);
 
-			if( (area > 65000) && (area < 70000) )
+			if( (area > 40000) ) //&& (area < 70000) )
 			{ 
 				CvRect bounding = cvBoundingRect( contour, 0 );
 
@@ -90,6 +90,13 @@ main(
 				/* Create card ROI */
 				CvMat *card_roi = cvCreateMat( bounding.height, bounding.width, CV_8UC1 );
 				card_roi = cvGetSubRect( template_enh, card_roi, bounding );
+
+#if DEBUG
+				cvShowImage( "card_roi", card_roi );
+				cvMoveWindow( "card_roi", 0, 0 );
+				cvWaitKey(0);
+#endif
+
 				card_detect( card_roi );
 				cvReleaseMat( &card_roi );
 

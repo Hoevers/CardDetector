@@ -106,7 +106,7 @@ card_process(CvMat *image, enum card_type current)
 		cvThreshold( image, image, 200, 255, CV_THRESH_BINARY);
 
 		/* Show card */
-#if DEBUG
+#if 0 //DEBUG
 		cvShowImage( card_type_string[current], image );
 		cvMoveWindow( card_type_string[current], 0, 0 );
 #endif /* DEBUG */
@@ -114,7 +114,7 @@ card_process(CvMat *image, enum card_type current)
 		cvCanny( image, edges, 170, 200, 3 );
 
 		/* Show edges */
-#if DEBUG
+#if 0 //DEBUG
 		cvShowImage( "edges", edges );
 		cvMoveWindow( "edges", edges->cols, 0 );
 		while( cvWaitKey(0) != 32 )
@@ -160,17 +160,16 @@ card_detect(CvMat *card_roi)
 
 	/* Detect edges and find */
 	edges = cvCreateMat( card_roi->rows, card_roi->cols, card_roi->type );
-	cvCanny( card_roi, edges, 170, 200, 3 );
+	//cvCanny( card_roi, edges, 0, 255, 3 );
 	contour_count = cvFindContours(
-        edges,
+        card_roi,
         storage,
         &contours,
         sizeof(CvContour),
         CV_RETR_LIST,
-		CV_CHAIN_APPROX_SIMPLE,
+		CV_CHAIN_APPROX_NONE,
 		cvPoint(0, 0)
 	);
-
 
 	/* Compare contours */
 	if( contour_count > 0)
@@ -187,8 +186,8 @@ card_detect(CvMat *card_roi)
 				CV_FILLED, cvPoint(0, 0) );
 #if DEBUG
 				cvShowImage( "card_edges", edges );
-				cvMoveWindow( "card_edges", 0, 400 );
-				while( cvWaitKey(3000) != 32 )
+				cvMoveWindow( "card_edges", 0, 0 );
+				while( cvWaitKey(250) != 32 )
 				;
 #endif
 		}
