@@ -1,5 +1,7 @@
 #include "cards.h"
+
 #include <stdio.h>
+#include <stdbool.h>
 
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
@@ -13,18 +15,10 @@ card_type_string[] =
 	"spades",
 	"clubs",
 	"diamonds",
-	"ace",
-	"two",
-	"three",
-	"four",
-	"five",
-	"six",
-	"seven",
-	"nine",
-	"ten",
 	"jack",
 	"queen",
-	"king"
+	"king",
+	NULL
 };
 
 /** Card templates contours */
@@ -53,7 +47,9 @@ card_init(const char *directory)
 		if( file == NULL )
 		{
 			printf("doesn't exist!\n");
-			exit(-1);
+			fclose(file);
+			break;
+			//exit(-1);
 		}
 		else
 			printf("file exist :-)!\n");
@@ -62,17 +58,12 @@ card_init(const char *directory)
 
 		current_image = cvLoadImageM( filename, CV_LOAD_IMAGE_GRAYSCALE );
 		if( current_image != NULL )
+		{
 			card_process( current_image, current );
-
-		/* TODO */
-		/*
-			Load image with opencv
-			Enhance image
-			Canny edge
-			Contour
-			Save contour to array
-		*/
+			cvReleaseMat( &current_image );
+		}
 	}
+
 
 	return 0;
 }
@@ -99,14 +90,17 @@ card_cleanup(void)
 void
 card_process(CvMat *image, enum card_type current)
 {
-	int contour_count = 0;
-	CvMat *edges    = NULL;
-	CvMemStorage* storage = cvCreateMemStorage(0);;
-	CvSeq *contours= NULL;
+	int contour_count     = 0;
 
-	if( (current >= CARD_JOKER) && (current < CARD_TYPE_END) )
+	CvMat *edges          = NULL;
+	CvSeq *contours       = NULL;
+	CvMemStorage* storage = NULL;
+
+	/* Check for valid current card */
+	if( (image != NULL) && (current >= CARD_JOKER) && (current < CARD_TYPE_END) )
 	{
-		edges = cvCreateMat( image->rows, image->cols, image->type );
+		storage = cvCreateMemStorage(0); 
+		edges   = cvCreateMat( image->rows, image->cols, image->type );
 
 		cvSmooth( image, image, CV_GAUSSIAN, 3, 0, 0, 0 );
 		cvThreshold( image, image, 200, 255, CV_THRESH_BINARY);
@@ -127,6 +121,7 @@ card_process(CvMat *image, enum card_type current)
 			;
 #endif /* DEBUG */
 
+		/* Find contours */
 		contour_count = cvFindContours(
 				edges,
 				storage,
@@ -137,7 +132,73 @@ card_process(CvMat *image, enum card_type current)
 				cvPoint(0, 0)
 		);
 
+		/* Save contours in card list */
+		card_contours[ current ] = contours;
+
+		/* Cleanup */
+		cvReleaseMat( &edges );
 		cvClearMemStorage(storage);
 		cvReleaseMemStorage(&storage);
 	}
+}
+
+/**
+ * Try to detect a card from the learned list
+ * @param card The binary enhanced image
+ */
+enum card_type
+card_detect(CvMat *card_roi)
+{
+
+	int contour_count     = 0;
+	bool card_found       = false;
+	enum card_type card   = CARD_UNKNOWN;
+	CvMemStorage* storage = cvCreateMemStorage(0);
+	CvSeq *contour        = NULL;
+	CvSeq *contours       = NULL;
+	CvMat *edges          = NULL;
+
+	/* Detect edges and find */
+	edges = cvCreateMat( card_roi->rows, card_roi->cols, card_roi->type );
+	cvCanny( card_roi, edges, 170, 200, 3 );
+	contour_count = cvFindContours(
+        edges,
+        storage,
+        &contours,
+        sizeof(CvContour),
+        CV_RETR_LIST,
+		CV_CHAIN_APPROX_SIMPLE,
+		cvPoint(0, 0)
+	);
+
+
+	/* Compare contours */
+	if( contour_count > 0)
+	{
+		for( contour = contours; contour != NULL; contour = contour->h_next )
+		{
+			cvDrawContours( 
+				edges,
+				contour,
+				CV_RGB(255,255,255),
+				CV_RGB(255,255,255),
+				0,
+				2,
+				CV_FILLED, cvPoint(0, 0) );
+#if DEBUG
+				cvShowImage( "card_edges", edges );
+				cvMoveWindow( "card_edges", 0, 400 );
+				while( cvWaitKey(3000) != 32 )
+				;
+#endif
+		}
+	}
+
+	/* Cleanup */
+	cvClearSeq( contours );
+	cvReleaseMat( &edges );
+	cvClearMemStorage(storage);
+	cvReleaseMemStorage(&storage);
+
+	return card;
 }

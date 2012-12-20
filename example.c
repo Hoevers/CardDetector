@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "cards.h"
+
 #ifdef WINDOWS
 #	include <direct.h>
 #	define getcwd _getcwd
@@ -47,15 +49,12 @@ main(
 
 		cvSmooth( template_enh, template_enh, CV_GAUSSIAN, 3, 0, 0, 0 );
 		cvThreshold( template_enh, template_enh, 200, 255, CV_THRESH_BINARY);
-		//cvAdaptiveThreshold( template_enh, template_enh, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 121, 0);
-		//IplConvKernel *kernel = cvCreateStructuringElementEx( 3, 3, 0, 0, CV_SHAPE_RECT, NULL );
-		//cvErode( template_enh, template_enh, kernel, 1 );
 		cvCanny( template_enh, template_edges, 170, 200, 3 );
 
 		CvMemStorage* storage = cvCreateMemStorage(0);;
 		CvSeq *contours = NULL;
 
-		int val = cvFindContours(
+		int contour_count = cvFindContours(
 		        template_edges,
 		        storage,
 		        &contours,
@@ -65,74 +64,41 @@ main(
 				cvPoint(0, 0)
 		        );
 
-/*
-		cvDrawContours( 
-			template_out,
-			contours,
-			CV_RGB(127,255,127),
-			CV_RGB(0,255,0),
-			1, 5, 8, cvPoint(0, 0) );
-*/
-
 		CvSeq *contour = NULL;
 		unsigned int id = 0;
+
+		/* Try to detect a card in the frame contour list */
 		for( contour = contours; contour != NULL; contour = contour->h_next )
 		{
 			double area =  cvContourArea( contour, CV_WHOLE_SEQ, 0 );
-			if( area > 15000 )
+			printf("[%u] Area: %f\n", id,  area);
+
+			if( (area > 65000) && (area < 70000) )
 			{ 
 				CvRect bounding = cvBoundingRect( contour, 0 );
-				printf("[%u] Area: %f\n", id,  area);
-				cvRectangle( template_out, cvPoint(bounding.x, bounding.y), cvPoint( bounding.x + bounding.width, bounding.y + bounding.height ), CV_RGB(255, 0, 0), 5, 8, 0);
 
-				printf("bounding width: %d, height: %d\n", bounding.width, bounding.height);
+				cvRectangle( template_out, 
+					cvPoint(bounding.x, bounding.y),
+					cvPoint( bounding.x + bounding.width, bounding.y + bounding.height ),
+					CV_RGB(255, 0, 0),
+					5, 8, 0);
+
+#ifdef DEBUG
+				printf("Card ROI width: %d, height: %d\n", bounding.width, bounding.height);
+#endif /* DEBUG */
 
 				/* Create card ROI */
 				CvMat *card_roi = cvCreateMat( bounding.height, bounding.width, CV_8UC1 );
-				CvMat *card_roi_out = cvCreateMat( bounding.height, bounding.width, CV_8UC3 );
-				CvMat *card_edges = cvCreateMat( bounding.height, bounding.width, CV_8UC1 );
 				card_roi = cvGetSubRect( template_enh, card_roi, bounding );
-
-				cvCvtColor( card_roi, card_roi_out, CV_GRAY2BGR);
-
-				CvMemStorage* card_storage = cvCreateMemStorage(0);;
-				CvSeq *card_contours = NULL;
-
-				cvCanny( card_roi, card_edges, 170, 200, 3 );
-				int val = cvFindContours(
-					card_edges,
-					card_storage,
-					&card_contours,
-					sizeof(CvContour),
-					CV_RETR_EXTERNAL,
-					CV_CHAIN_APPROX_SIMPLE,
-					cvPoint(0, 0)
-				);
-
-		cvDrawContours( 
-			card_roi_out,
-			card_contours,
-			CV_RGB(127,255,127),
-			CV_RGB(0,255,0),
-			1, 1, 8, cvPoint(0, 0) );
-
-				/* Show and release */
-				cvShowImage( "card_roi_out", card_roi_out );
-				cvMoveWindow( "card_roi_out", 0, template_src->width/4 );
-
+				card_detect( card_roi );
 				cvReleaseMat( &card_roi );
-				cvReleaseMat( &card_roi_out );
-				cvReleaseMat( &card_edges );
-
-				cvClearMemStorage(card_storage);
-				cvReleaseMemStorage(&card_storage);
 
 				break;
 			}
 			id++;
 		}
 
-// Draw text
+		/* Print some text */
 #if 0
 		char buffer[256] = { 0 };
 
@@ -149,11 +115,14 @@ main(
 		cvPutText(template_out, buffer, cvPoint( 1, 15 ), &font, CV_RGB(255,255,255));
 #endif
 
+		/* Show image */
 		cvResize( template_out, template_out_rescale, CV_INTER_LINEAR );
 		cvShowImage( "template", template_out_rescale );
 		cvMoveWindow( "template", 0, 0 );
 
 		/* Cleanup */
+		if(contour_count > 0)
+			cvClearSeq( contours );
 		cvReleaseMat( &template_enh );
 		cvReleaseMat( &template_edges );
 		cvReleaseMat( &template_out );
@@ -163,7 +132,7 @@ main(
 		cvReleaseMemStorage(&storage);
 
 		/* Wait for escape key to exit */
-		if ( (cvWaitKey(250) & 255) == 27 )
+		if ( (cvWaitKey(0) & 255) == 27 )
 			break;
 	}
 
